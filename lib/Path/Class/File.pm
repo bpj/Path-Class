@@ -187,6 +187,14 @@ sub spew_lines {
     return $self->spew( %args, $content );
 }
 
+sub openr_utf8 { $_[0]->open('<:encoding(UTF-8)') or croak "Can't read UTF-8 from $_[0]: $!"  }
+sub openw_utf8 { $_[0]->open('>:encoding(UTF-8)') or croak "Can't write UTF-8 to $_[0]: $!" }
+sub opena_utf8 { $_[0]->open('>>:encoding(UTF-8)') or croak "Can't append UTF-8 to $_[0]: $!" }
+
+sub slurp_utf8 { shift->slurp(iomode => '<:encoding(UTF-8)') }
+sub spew_utf8 { shift->spew(iomode => '>:encoding(UTF-8)', @_) }
+sub spew_lines_utf8 { shift->spew_lines(iomode => '>:encoding(UTF-8)', @_) }
+
 sub remove {
   my $file = shift->stringify;
   return unlink $file unless -e $file; # Sets $! correctly
@@ -557,6 +565,43 @@ of the array.
 
 Can also take an C<iomode> parameter like C<spew>. Again, the
 default C<iomode> is C<w>.
+
+=item $fh = $file->openr_utf8()
+
+A shortcut for:
+
+ $file->open('<:encoding(UTF-8)');
+
+=item $fh = $file->openw_utf8()
+
+A shortcut for:
+
+ $file->open('>:encoding(UTF-8)');
+
+=item $fh = $file->opena_utf8()
+
+A shortcut for:
+
+ $file->open('>>:encoding(UTF-8)');
+
+=item $file->slurp_utf8()
+
+A shortcut for:
+
+ $file->slurp(iomode => '<:encoding(UTF-8)');
+
+=item $file->spew_utf8( $content );
+
+A shortcut for:
+
+ $file->spew(iomode => '>:encoding(UTF-8)', $content);
+
+=item $file->spew_lines_utf8( $content );
+
+A shortcut for:
+
+ $file->spew_lines(iomode => '>:encoding(UTF-8)', $content);
+
 
 =item $file->traverse(sub { ... }, @args)
 
