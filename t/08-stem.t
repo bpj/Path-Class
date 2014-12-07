@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 33;
+use Test::More tests => 49;
 use Path::Class qw[ file dir ];
 
 my $dir   = dir( qw[ path to some ] );
@@ -16,13 +16,22 @@ for my $data ( @data ) {
     my $basename = $data->{file}->basename;
     my $file = $data->{file};
     my $stem = $data->{stem} || 'file';
-    is $file->stem, $stem, "stem of '$basename'";
+    is $file->stem, $stem or diag "Failed test was: stem of '$basename'";
     for my $suf ( qw[ suffix extension ] ) {
-        is $file->$suf, $data->{extension}, "$suf of $basename";
+        is $file->$suf, $data->{extension} or diag "Failed test was: $suf of $basename";
     }
-    is $file->stem . $data->{suffix}, $basename, "roundtrip $basename";
-    for my $suf ( qw[ pl .pl ] ) {
-        is $file->with_suffix( $suf ), $dir->file("$stem.pl"), "resuffix $file with $suf";
+    is $file->stem . $data->{suffix}, $basename or diag "Failed test was: roundtrip $basename";
+    for my $suf ( qw[ pl .pl . ] ) {
+        my $expected = $dir->file("$stem.$suf")->stringify;
+        $expected =~ s/\.\././g;
+        is $file->with_suffix( $suf ), $expected or diag "Failed test was: resuffix $file with $suf";
+    }
+    {
+        my $other_file = $dir->file( 'other' )->with_suffix( $data->{suffix} )->stringify;
+        for my $other_stem ( qw[ other other. ] ) {
+            is $file->with_stem($other_stem), $other_file
+                or diag "Failed test was: $basename with stem '$other_stem' and suffix '$data->{suffix}'";
+        }
     }
 }
 {
@@ -30,8 +39,9 @@ for my $data ( @data ) {
     my $basename = $file->basename;
     my $basefile = $file->basefile;
     isa_ok $basefile, ref($file), 'class of basefile';
-    is $basefile, $basename, 'basefile eq basename';
-    is $basefile->with_suffix('bar'), 'quux.bar', 'basefile with suffix';
+    is $basefile, $basename or diag 'Failed test was: basefile eq basename';
+    is $basefile->with_suffix('bar'), 'quux.bar' or diag 'Failed test was: basefile with_suffix';
+    is $basefile->with_stem('baz'), 'baz.foo' or diag 'Failed test was: basefile with_stem';
 }
 
 

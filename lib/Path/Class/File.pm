@@ -83,16 +83,34 @@ sub stem {
 sub with_suffix {
     my ( $self, $suffix ) = @_;
     $suffix = q{} unless defined $suffix;
-
     # Lookahead for non-period character to make sure that
     # we don't prepend any period in case someone passes an empty string!
+    # XXX We have an edge case: the new suffix is just a dot.
+    # XXX Should we assume that User wants the new file to end in a dot?
     $suffix =~ s{\A(?=[^.])}{.};
     my $basename = $self->stem . $suffix;
     return $self->new( $basename ) unless defined $self->{dir};
-    return $self->new($self->dir->components, $basename);
+    return $self->new($self->dir, $basename);
 }
 
 *with_extension = \&with_suffix;
+
+sub with_stem {
+    my ( $self, $stem ) = @_;
+    croak 'Method with_stem() requires stem string as argument'
+        unless defined $stem and length $stem;
+    my $suffix = $self->suffix;
+    $suffix = q{} unless defined $suffix;
+    # XXX There is a pesky edge case: a new stem ending in a dot.
+    # XXX Shall we assume that User doesn't want two dots?
+    # XXX Should we really assume that they want a dot if 
+    # XXX the old file did not have a suffix?
+    $suffix =~ s{\A(?=[^.])}{.};
+    $stem =~ s/\.\z// if length $suffix; 
+    my $basename = $stem . $suffix;
+    return $self->new( $basename ) unless defined $self->{dir};
+    return $self->new($self->dir, $basename);
+}
 
 sub basefile {
     my ( $self ) = @_;
@@ -369,6 +387,20 @@ and the empty string if the filename ends in a period.
 =item $file->extension
 
 An alias for C<< suffix >>.
+
+=item my $other_file = $file->with_stem($other_stem);
+
+An abbreviation of
+
+  my $other_file = $file->dir->file( $other_stem . '.' . $file->suffix );
+  
+except that the directory part of $other_file won't be set
+to the current directory if $file had no directory part.
+Moreover you will get correct results regardless whether
+$other_stem is supplied with or without a trailing period,
+and you won't get any warnings if C<< $file->suffix >>
+returns an empty string. A missing or empty argument is however
+a fatal error.
 
 =item my $other_file = $file->with_suffix($other_suffix);
 
