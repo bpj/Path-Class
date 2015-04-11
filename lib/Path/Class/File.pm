@@ -64,6 +64,52 @@ sub components {
 }
 
 sub basename { shift->{file} }
+
+sub basefile {
+    my $self = shift;
+    return $self->new( $self->basename );
+}
+
+sub suffix {
+    my $self = shift;
+    $self =~ m/(?<=[^\s.])\.([^.]*)\z/ or return q{};
+    return $1;
+}
+*extension = \&suffix;
+
+sub stem {
+    my $self = shift;
+    my $stem = $self->basename;
+    $stem =~ s/(?<=[^\s.])\.[^.]*\z//;
+    return $stem;
+}
+*without_extension = \&stem;
+
+sub bare {
+    my $self = shift;
+    my $bare = $self->basename;
+    1 while $bare =~ s/(?<=[^\s.])\.[^.]*\z//;
+    return $bare;
+}
+*without_extensions = \&bare;
+
+sub with_suffix {
+    my $self = shift;
+    my $suffix = shift;
+    # $suffix =~ m/\A\.?([^.]+)\z/ or croak "Doesn't look like a filename extension: '$suffix'";
+    # return $self->new( $self->dir, $self->stem . '.' . $1 );
+    $suffix =~ s/\A\.//;
+    my $dir = $self->dir;
+    my @path = $dir ne Path::Class::dir() ? ($dir) : ();
+    return $self->new( @path, $self->stem . '.' . $suffix );
+}
+*with_extension = \&with_suffix;
+
+sub with_dir {
+    my $self = shift;
+    return @_ ? $self->new( @_, $self->basename ) : $self->new( $self->basename );
+}
+
 sub open  { IO::File->new(@_) }
 
 sub openr { $_[0]->open('r') or croak "Can't read $_[0]: $!"  }
@@ -306,6 +352,76 @@ etc.) of the object, if any.  Otherwise, returns the empty string.
 
 Returns the name of the file as a string, without the directory
 portion (if any).
+
+=item $file->basefile
+
+Is just like C<basename()>, except that it returns an object
+of the same class as C<$file> (i.e. normally C<Path::Class::File>).
+
+=item $file->suffix
+
+Returns the file extension of C<$file>, defined as any
+non-period characters between the last period character and the end
+of the filename. Returns the empty string if no extension is found.
+
+Note that the period character separating the extension from the stem
+is I<not> included in the returned extension.
+
+The filename must look like a well-formed filename with an
+extension, defined as the period being preceded by a character
+which is not a period or a whitespace character, so this method
+will not return the whole filename of Unix dotfiles or the like.
+
+=item $file->extension
+
+This is an alias to C<suffix()>.
+
+=item $file->stem
+
+Returns the basename of C<$file> with the (last) file extension, 
+if any, removed. See C<suffix()> for how the extension is determined.
+
+=item $file->without_extension
+
+This is an alias to C<stem()>.
+
+=item $file->bare
+
+Is just like C<stem()>, except that it removes I<all> extensions,
+if any, from the basename recursively. Thus if C<$file> is e.g.
+C<some/dir/foo.tar.gz> then C<bare()> returns C<foo>, while
+C<stem()> would return C<foo.tar>.
+See C<suffix()> for how extensions are determined.
+
+=item $file->without_extensions
+
+This is an alias to C<bare()>.
+
+=item $file->with_suffix($ext)
+
+Is basically sugar for
+
+    $file->new( $file->dir, $file->stem . '.' . $ext )
+
+but removes any existing leading period on C<$ext> before
+concatenating, and omits the directory if it is equal to the
+current directory, so that you don't end up with a file object
+stringifying as e.g. C<./stem.ext> rather than C<stem.ext>.
+
+=item $file->with_extension($ext)
+
+This is an alias to C<with_suffix()>.
+
+=item $file->with_dir($dir)
+
+=item $file->with_dir(@path)
+
+Is basically sugar for
+
+    $file->new( @path, $file->basename )
+
+but returns the same thing as C<basefile()> if C<@path> is empty
+or missing.
 
 =item $file->components
 
